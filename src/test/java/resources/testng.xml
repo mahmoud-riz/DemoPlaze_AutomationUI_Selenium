@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+
+<suite name="DemoBlaze Automation Suite" verbose="1" parallel="none" thread-count="1">
+
+    <parameter name="browser" value="chrome"/>
+    <parameter name="baseUrl" value="https://www.demoblaze.com"/>
+
+    <listeners>
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+
+    <!-- Full Regression Test Suite -->
+    <test name="DemoBlaze Full Regression Tests" preserve-order="true">
+        <classes>
+            <!-- User Registration and Login Tests -->
+            <class name="tests.LoginTests">
+                <methods>
+                    <include name="testUserRegistration"/>
+                    <include name="testValidUserLogin"/>
+                    <include name="testInvalidUserLogin"/>
+                    <include name="testLoginModalFunctionality"/>
+                    <include name="testSignUpModalFunctionality"/>
+                    <include name="testUserLogout"/>
+                    <include name="testRegistrationWithEmptyCredentials"/>
+                </methods>
+            </class>
+
+            <!-- Product Search and Filter Tests -->
+            <class name="tests.ProductTests">
+                <methods>
+                    <include name="testProductSearch"/>
+                    <include name="testProductCategoryFilter"/>
+                    <include name="testProductDetailsDisplay"/>
+                    <include name="testProductDetailPageNavigation"/>
+                    <include name="testProductCountPerCategory"/>
+                    <include name="testMultipleCategoryFiltering"/>
+                    <include name="testVariousSearchTerms"/>
+                </methods>
+            </class>
+
+            <!-- Shopping Cart Management Tests -->
+            <class name="tests.CartTests">
+                <methods>
+                    <include name="testAddProductToCart"/>
+                    <include name="testRemoveProductFromCart"/>
+                    <include name="testAddMultipleProductsToCart"/>
+                    <include name="testCartTotalCalculation"/>
+                    <include name="testCartPersistenceDuringNavigation"/>
+                    <include name="testEmptyCartState"/>
+                    <include name="testCartItemDetailsDisplay"/>
+                </methods>
+            </class>
+
+            <!-- Checkout Process Tests -->
+            <class name="tests.CheckoutTests">
+                <methods>
+                    <include name="testCompleteCheckoutProcess"/>
+                    <include name="testCheckoutWithMultipleProducts"/>
+                    <include name="testCheckoutFormValidation"/>
+                    <include name="testCheckoutModalFunctionality"/>
+                    <include name="testOrderConfirmationDetails"/>
+                    <include name="testCheckoutFromEmptyCart"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Smoke Test Suite -->
+    <test name="DemoBlaze Smoke Tests" enabled="false" preserve-order="true">
+        <classes>
+            <class name="tests.LoginTests">
+                <methods>
+                    <include name="testUserRegistration"/>
+                    <include name="testValidUserLogin"/>
+                </methods>
+            </class>
+            <class name="tests.ProductTests">
+                <methods>
+                    <include name="testProductSearch"/>
+                    <include name="testProductCategoryFilter"/>
+                </methods>
+            </class>
+            <class name="tests.CartTests">
+                <methods>
+                    <include name="testAddProductToCart"/>
+                    <include name="testRemoveProductFromCart"/>
+                </methods>
+            </class>
+            <class name="tests.CheckoutTests">
+                <methods>
+                    <include name="testCompleteCheckoutProcess"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+    <!-- Critical Path Tests -->
+    <test name="DemoBlaze Critical Path Tests" enabled="false" preserve-order="true">
+        <classes>
+            <class name="tests.LoginTests">
+                <methods>
+                    <include name="testUserRegistration"/>
+                    <include name="testValidUserLogin"/>
+                </methods>
+            </class>
+            <class name="tests.CartTests">
+                <methods>
+                    <include name="testAddProductToCart"/>
+                </methods>
+            </class>
+            <class name="tests.CheckoutTests">
+                <methods>
+                    <include name="testCompleteCheckoutProcess"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>
