@@ -52,41 +52,26 @@ public class LoginPageActions extends BaseActions {
     }
 
     /**
-     * Perform complete user registration
+     * Perform complete user registration (streamlined)
      */
     public void registerUser(String username, String password) {
-        logger.info("Starting user registration for username: {}", username);
+        logger.info("Registering user: {}", username);
+        
         clickSignUpLink();
         enterSignUpUsername(username);
         enterSignUpPassword(password);
         clickSignUpButton();
 
-        // Wait for alert to appear and handle it
+        // Handle registration alert
         String alertText = waitForAlertAndGetText();
         if (!alertText.isEmpty()) {
+            logger.info("Registration alert: {}", alertText);
             acceptAlert();
-            logger.info("Registration alert handled: {}", alertText);
         }
 
-        // Wait for modal to close after registration
+        // Close modal
         waitForElementToDisappear(LoginPageLocators.SIGNUP_MODAL);
-        closeSignUpModal();
-        logger.info("User registration completed for: {}", username);
-    }
-
-    /**
-     * Close sign up modal
-     */
-    public void closeSignUpModal() {
-        try {
-            if (isElementVisible(LoginPageLocators.SIGNUP_MODAL)) {
-                clickElement(BaseLocators.MODAL_CLOSE_X);
-                waitForElementToDisappear(LoginPageLocators.SIGNUP_MODAL);
-                logger.info("Sign up modal closed");
-            }
-        } catch (Exception e) {
-            logger.warn("Could not close sign up modal: {}", e.getMessage());
-        }
+        logger.info("Registration completed for: {}", username);
     }
 
     /**
@@ -125,89 +110,94 @@ public class LoginPageActions extends BaseActions {
     }
 
     /**
-     * Perform complete user login
+     * Perform complete user login (streamlined)
      */
     public void loginUser(String username, String password) {
-        logger.info("Starting user login for username: {}", username);
-        //logger.info("Starting user login for password: {}", password);
+        logger.info("Logging in user: {}", username);
+        
         clickLoginLink();
         enterLoginUsername(username);
         enterLoginPassword(password);
         clickLoginButton();
 
-        // Wait for login to complete - either success or failure
-        waitForCondition(driver -> {
-            // Check if user is logged in (success case)
-            if (isUserLoggedIn()) {
-                return true;
+        // Handle login alert if present
+        String alertText = waitForAlertAndGetText();
+        if (!alertText.isEmpty()) {
+            logger.info("Login alert: {}", alertText);
+            acceptAlert();
+            if (alertText.toLowerCase().contains("wrong") || alertText.toLowerCase().contains("error")) {
+                logger.warn("Login failed: {}", alertText);
+                return;
             }
-            // Check if login modal is still visible (failure case)
-            if (isLoginModalDisplayed()) {
-                return true;
-            }
-            // Keep waiting
-            return false;
-        });
+        }
 
-        // If login was successful, wait for modal to disappear
+        // Wait for login to complete
+        waitForPageLoad();
+        
         if (isUserLoggedIn()) {
-            waitForElementToDisappear(LoginPageLocators.LOGIN_MODAL);
-            logger.info("User logged in successfully: {}", username);
+            logger.info("Login successful for: {}", username);
         } else {
-            logger.warn("User login failed for: {}", username);
+            logger.warn("Login verification failed for: {}", username);
         }
     }
 
     /**
-     * Close login modal
-     */
-    public void closeLoginModal() {
-        try {
-            if (isElementVisible(LoginPageLocators.LOGIN_MODAL)) {
-                clickElement(BaseLocators.MODAL_CLOSE_X);
-                waitForElementToDisappear(LoginPageLocators.LOGIN_MODAL);
-                logger.info("Login modal closed");
-            }
-        } catch (Exception e) {
-            logger.warn("Could not close login modal: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Check if user is logged in
+     * Check if user is logged in (simplified)
      */
     public boolean isUserLoggedIn() {
-
-        boolean isLoggedIn = isElementVisible(BaseLocators.LOGGED_USER);
-        logger.debug("User logged in status: {}", isLoggedIn);
-        return isLoggedIn;
+        // Check primary indicator
+        if (isElementVisible(BaseLocators.LOGGED_USER)) {
+            return true;
+        }
+        
+        // Check logout link as fallback
+        if (isElementVisible(BaseLocators.LOGOUT_LINK)) {
+            return true;
+        }
+        
+        return false;
     }
 
     /**
-     * Get logged in username
+     * Get logged in username (simplified)
      */
     public String getLoggedInUsername() {
-        if (isUserLoggedIn()) {
-            String welcomeText = getText(BaseLocators.LOGGED_USER);
-            String username = welcomeText.replace("Welcome ", "");
-            logger.debug("Logged in username: {}", username);
-            return username;
+        if (!isUserLoggedIn()) {
+            return "";
         }
-        logger.debug("No user logged in");
-        return "";
+        
+        String welcomeText = getText(BaseLocators.LOGGED_USER);
+        return welcomeText.replace("Welcome ", "");
     }
 
     /**
-     * Logout user
+     * Logout user (simplified)
      */
     public void logoutUser() {
         if (isUserLoggedIn()) {
-            String username = getLoggedInUsername();
             clickElement(BaseLocators.LOGOUT_LINK);
             waitForElementToDisappear(BaseLocators.LOGGED_USER);
-            logger.info("User logged out successfully: {}", username);
-        } else {
-            logger.warn("No user to logout");
+            logger.info("User logged out successfully");
+        }
+    }
+
+    /**
+     * Close sign up modal (simplified)
+     */
+    public void closeSignUpModal() {
+        if (isElementVisible(LoginPageLocators.SIGNUP_MODAL)) {
+            clickElement(BaseLocators.MODAL_CLOSE_X);
+            waitForElementToDisappear(LoginPageLocators.SIGNUP_MODAL);
+        }
+    }
+
+    /**
+     * Close login modal (simplified)
+     */
+    public void closeLoginModal() {
+        if (isElementVisible(LoginPageLocators.LOGIN_MODAL)) {
+            clickElement(BaseLocators.MODAL_CLOSE_X);
+            waitForElementToDisappear(LoginPageLocators.LOGIN_MODAL);
         }
     }
 
@@ -215,17 +205,13 @@ public class LoginPageActions extends BaseActions {
      * Check if sign up modal is displayed
      */
     public boolean isSignUpModalDisplayed() {
-        boolean isDisplayed = isElementVisible(LoginPageLocators.SIGNUP_MODAL);
-        logger.debug("Sign up modal displayed: {}", isDisplayed);
-        return isDisplayed;
+        return isElementVisible(LoginPageLocators.SIGNUP_MODAL);
     }
 
     /**
      * Check if login modal is displayed
      */
     public boolean isLoginModalDisplayed() {
-        boolean isDisplayed = isElementVisible(LoginPageLocators.LOGIN_MODAL);
-        logger.debug("Login modal displayed: {}", isDisplayed);
-        return isDisplayed;
+        return isElementVisible(LoginPageLocators.LOGIN_MODAL);
     }
 }

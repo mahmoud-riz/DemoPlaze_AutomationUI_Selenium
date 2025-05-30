@@ -2,8 +2,14 @@ package actions;
 
 import locators.CheckoutPageLocators;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.openqa.selenium.TimeoutException;
+
+import java.time.Duration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Actions for Checkout Process functionality
@@ -145,8 +151,6 @@ public class CheckoutPageActions extends BaseActions {
      */
     public void waitForOrderConfirmation() {
         try {
-            logger.debug("Waiting for order confirmation modal");
-            
             // Try multiple locator strategies for order confirmation
             String[] confirmationLocators = {
                 CheckoutPageLocators.ORDER_CONFIRMATION_MODAL,
@@ -163,46 +167,50 @@ public class CheckoutPageActions extends BaseActions {
             for (String locator : confirmationLocators) {
                 try {
                     waitForElementVisible(locator);
-                    logger.info("Order confirmation modal found with locator: {}", locator);
                     confirmationFound = true;
                     break;
                 } catch (Exception e) {
-                    logger.debug("Confirmation locator {} failed: {}", locator, e.getMessage());
+                    // Try next locator
                 }
             }
             
             if (!confirmationFound) {
-                // Wait a bit longer and try again
-                logger.warn("Initial confirmation detection failed, waiting longer...");
+                // Wait for confirmation using proper WebDriver wait
                 try {
-                    Thread.sleep(5000); // Wait 5 more seconds
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    WebDriverWait confirmationWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+                    confirmationWait.until(webDriver -> {
+                        for (String locator : confirmationLocators) {
+                            try {
+                                if (isElementVisible(locator)) {
+                                    return true;
+                                }
+                            } catch (Exception e) {
+                                // Continue trying other locators
+                            }
+                        }
+                        return false;
+                    });
+                    confirmationFound = true;
+                } catch (TimeoutException e) {
+                    // Continue without confirmation
                 }
                 
-                // Try again with a more generic approach
-                for (String locator : confirmationLocators) {
-                    try {
-                        if (isElementVisible(locator)) {
-                            logger.info("Order confirmation found on retry with locator: {}", locator);
-                            confirmationFound = true;
-                            break;
+                // Final attempt with individual locator checks
+                if (!confirmationFound) {
+                    for (String locator : confirmationLocators) {
+                        try {
+                            if (isElementVisible(locator)) {
+                                confirmationFound = true;
+                                break;
+                            }
+                        } catch (Exception e) {
+                            // Continue trying
                         }
-                    } catch (Exception e) {
-                        logger.debug("Retry confirmation locator {} failed: {}", locator, e.getMessage());
                     }
                 }
             }
-            
-            if (confirmationFound) {
-                logger.info("Order confirmation modal appeared successfully");
-            } else {
-                logger.warn("Order confirmation modal detection failed with all locators");
-                // Don't throw exception, let the test decide what to do
-            }
         } catch (Exception e) {
-            logger.error("Error waiting for order confirmation: {}", e.getMessage());
-            // Don't throw exception, let the verification methods handle it
+            // Continue without throwing
         }
     }
 
@@ -227,7 +235,6 @@ public class CheckoutPageActions extends BaseActions {
      */
     public String getOrderId() {
         try {
-            logger.debug("Getting order ID from confirmation");
             waitForOrderConfirmation();
             
             // Try multiple approaches to get order ID
@@ -236,7 +243,6 @@ public class CheckoutPageActions extends BaseActions {
             try {
                 orderIdText = getText(CheckoutPageLocators.ORDER_ID);
             } catch (Exception e) {
-                logger.debug("Primary order ID locator failed: {}", e.getMessage());
                 // Try alternative approaches to get the confirmation text
                 String[] confirmationLocators = {
                     "//div[contains(@class,'sweet-alert')]",
@@ -252,13 +258,12 @@ public class CheckoutPageActions extends BaseActions {
                             break;
                         }
                     } catch (Exception ex) {
-                        logger.debug("Confirmation locator {} failed: {}", locator, ex.getMessage());
+                        // Try next locator
                     }
                 }
             }
             
             if (orderIdText.isEmpty()) {
-                logger.warn("No order confirmation text found");
                 return "";
             }
             
@@ -283,10 +288,8 @@ public class CheckoutPageActions extends BaseActions {
                 }
             }
             
-            logger.info("Order ID extracted: '{}'", orderId);
             return orderId;
         } catch (Exception e) {
-            logger.error("Error getting order ID: {}", e.getMessage());
             return "";
         }
     }
@@ -296,7 +299,6 @@ public class CheckoutPageActions extends BaseActions {
      */
     public String getOrderAmount() {
         try {
-            logger.debug("Getting order amount from confirmation");
             waitForOrderConfirmation();
             
             // Try multiple approaches to get order amount
@@ -305,7 +307,6 @@ public class CheckoutPageActions extends BaseActions {
             try {
                 amountText = getText(CheckoutPageLocators.ORDER_AMOUNT);
             } catch (Exception e) {
-                logger.debug("Primary order amount locator failed: {}", e.getMessage());
                 // Try to get from full confirmation text
                 String[] confirmationLocators = {
                     "//div[contains(@class,'sweet-alert')]",
@@ -322,13 +323,12 @@ public class CheckoutPageActions extends BaseActions {
                             break;
                         }
                     } catch (Exception ex) {
-                        logger.debug("Amount locator {} failed: {}", locator, ex.getMessage());
+                        // Try next locator
                     }
                 }
             }
             
             if (amountText.isEmpty()) {
-                logger.warn("No order amount text found");
                 return "";
             }
             
@@ -347,10 +347,8 @@ public class CheckoutPageActions extends BaseActions {
                 amount = amountText.trim();
             }
             
-            logger.info("Order amount extracted: '{}'", amount);
             return amount;
         } catch (Exception e) {
-            logger.error("Error getting order amount: {}", e.getMessage());
             return "";
         }
     }
@@ -360,13 +358,10 @@ public class CheckoutPageActions extends BaseActions {
      */
     public String getOrderDate() {
         try {
-            logger.debug("Getting order date from confirmation");
             waitForOrderConfirmation();
             String dateText = getText(CheckoutPageLocators.ORDER_DATE);
-            logger.info("Order date retrieved: {}", dateText);
             return dateText;
         } catch (Exception e) {
-            logger.error("Error getting order date: {}", e.getMessage());
             return "";
         }
     }
@@ -376,12 +371,10 @@ public class CheckoutPageActions extends BaseActions {
      */
     public void clickOkButton() {
         try {
-            logger.info("Clicking OK button to close confirmation");
             waitForElementVisible(CheckoutPageLocators.OK_BUTTON);
             clickElement(CheckoutPageLocators.OK_BUTTON);
-            logger.info("OK button clicked successfully - confirmation closed");
         } catch (Exception e) {
-            logger.error("Error clicking OK button: {}", e.getMessage());
+            // Continue silently
         }
     }
 
@@ -412,22 +405,38 @@ public class CheckoutPageActions extends BaseActions {
                 }
             }
             
-            // If not found immediately, wait a bit and try again
+            // If not found immediately, wait for modal animation using proper WebDriverWait
             try {
-                Thread.sleep(2000); // Wait 2 seconds for modal animation
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                WebDriverWait modalWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+                modalWait.until(webDriver -> {
+                    for (String locator : modalLocators) {
+                        try {
+                            if (isElementVisible(locator)) {
+                                return true;
+                            }
+                        } catch (Exception e) {
+                            // Continue trying other locators
+                        }
+                    }
+                    return false;
+                });
+                
+                logger.debug("Place Order modal found after waiting for animation");
+                return true;
+                
+            } catch (TimeoutException e) {
+                logger.debug("WebDriverWait timeout for Place Order modal animation");
             }
             
-            // Try again after wait
+            // Final verification attempt after wait
             for (String locator : modalLocators) {
                 try {
                     if (isElementVisible(locator)) {
-                        logger.debug("Place Order modal found on retry with locator: {}", locator);
+                        logger.debug("Place Order modal found on final verification with locator: {}", locator);
                         return true;
                     }
                 } catch (Exception e) {
-                    logger.debug("Retry modal locator {} failed: {}", locator, e.getMessage());
+                    logger.debug("Final verification locator {} failed: {}", locator, e.getMessage());
                 }
             }
             
@@ -558,6 +567,154 @@ public class CheckoutPageActions extends BaseActions {
         } catch (Exception e) {
             logger.error("Error verifying order completion: {}", e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Fill checkout form (streamlined)
+     */
+    public void fillCheckoutForm(String name, String country, String city, String creditCard, String month, String year) {
+        logger.info("Filling checkout form");
+        
+        enterCustomerName(name);
+        enterCustomerCountry(country);
+        enterCustomerCity(city);
+        enterCreditCard(creditCard);
+        enterCardMonth(month);
+        enterCardYear(year);
+    }
+
+    /**
+     * Complete checkout process (streamlined)
+     */
+    public void completeCheckout(String name, String country, String city, String creditCard, String month, String year) {
+        logger.info("Completing checkout process");
+        
+        fillCheckoutForm(name, country, city, creditCard, month, year);
+        clickPurchaseButton();
+        
+        // Wait for confirmation
+        waitForOrderConfirmation();
+    }
+
+    /**
+     * Get order confirmation message (streamlined)
+     */
+    public String getOrderConfirmation() {
+        waitForOrderConfirmation();
+        return getOrderConfirmationMessage();
+    }
+
+    /**
+     * Click OK on confirmation modal (streamlined)
+     */
+    public void clickOkOnConfirmation() {
+        logger.info("Clicking OK on confirmation");
+        
+        String[] okButtonLocators = {
+            CheckoutPageLocators.OK_BUTTON,
+            CheckoutPageLocators.CONFIRMATION_CLOSE,
+            "//button[text()='OK']",
+            "//button[contains(@class,'confirm')]"
+        };
+
+        for (String locator : okButtonLocators) {
+            if (isElementVisible(locator)) {
+                clickElement(locator);
+                waitForPageLoad();
+                return;
+            }
+        }
+    }
+
+    /**
+     * Is checkout modal displayed (streamlined)
+     */
+    public boolean isCheckoutModalDisplayed() {
+        return isPlaceOrderModalDisplayed();
+    }
+
+    /**
+     * Close checkout modal (streamlined)
+     */
+    public void closeCheckoutModal() {
+        if (isElementVisible(CheckoutPageLocators.PLACE_ORDER_MODAL)) {
+            clickElement(CheckoutPageLocators.CLOSE_ORDER_MODAL);
+            waitForElementToDisappear(CheckoutPageLocators.PLACE_ORDER_MODAL);
+        }
+    }
+
+    /**
+     * Ultra-fast fill checkout form without complex validation
+     */
+    public void fillCheckoutFormFast(String name, String country, String city, String creditCard, String month, String year) {
+        try {
+            // Direct form filling without waits
+            typeText(CheckoutPageLocators.CUSTOMER_NAME, name);
+            typeText(CheckoutPageLocators.CUSTOMER_COUNTRY, country);
+            typeText(CheckoutPageLocators.CUSTOMER_CITY, city);
+            typeText(CheckoutPageLocators.CREDIT_CARD, creditCard);
+            typeText(CheckoutPageLocators.CARD_MONTH, month);
+            typeText(CheckoutPageLocators.CARD_YEAR, year);
+        } catch (Exception e) {
+            // Use fallback method if fast method fails
+            fillCheckoutForm(name, country, city, creditCard, month, year);
+        }
+    }
+
+    /**
+     * Ultra-fast order completion check
+     */
+    public boolean isOrderCompletedFast() {
+        // Quick check for common success indicators
+        try {
+            // Check for thank you message first (most common)
+            if (isElementVisible("//h2[contains(text(),'Thank you')]")) {
+                return true;
+            }
+            
+            // Check for sweet alert modal
+            if (isElementVisible("//div[contains(@class,'sweet-alert')]")) {
+                return true;
+            }
+            
+            // Check for order confirmation
+            if (isElementVisible(CheckoutPageLocators.ORDER_CONFIRMATION_MODAL)) {
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Ultra-fast modal detection
+     */
+    public boolean isModalDisplayedFast() {
+        try {
+            return isElementVisible(CheckoutPageLocators.PLACE_ORDER_MODAL) || 
+                   isElementVisible("//div[@id='orderModal']");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Ultra-fast OK button click
+     */
+    public void clickOkFast() {
+        try {
+            // Try direct click first
+            clickElement(CheckoutPageLocators.OK_BUTTON);
+        } catch (Exception e) {
+            try {
+                // Try alternative locator
+                clickElement("//button[text()='OK']");
+            } catch (Exception ex) {
+                // Continue silently if can't close
+            }
         }
     }
 }

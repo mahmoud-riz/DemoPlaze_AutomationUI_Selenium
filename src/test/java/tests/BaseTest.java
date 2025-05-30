@@ -12,6 +12,11 @@ import org.testng.annotations.*;
 import io.qameta.allure.Attachment;
 import java.util.List;
 import java.util.ArrayList;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import java.time.Duration;
 
 /**
  * Base Test class containing common setup and teardown methods
@@ -175,13 +180,24 @@ public class BaseTest {
     }
 
     /**
-     * Helper method to wait for page load
+     * Helper method to wait for page load (using proper WebDriver waits)
      */
     protected void waitForPageLoad() {
         try {
-            Thread.sleep(2000); // Wait for page transitions
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            // Wait for document ready state to be complete
+            WebDriverWait wait = new WebDriverWait(DriverManager.getDriver(), Duration.ofSeconds(3));
+            wait.until(webDriver ->
+                    ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+            
+            // Additional wait for any dynamic content to load
+            wait.until(webDriver ->
+                    ((JavascriptExecutor) webDriver).executeScript("return typeof jQuery === 'undefined' || jQuery.active === 0"));
+                    
+        } catch (TimeoutException e) {
+            // If conditions aren't met within timeout, continue anyway
+            logger.debug("Page load wait timeout - continuing execution");
+        } catch (Exception e) {
+            logger.debug("Page load wait error: {} - continuing execution", e.getMessage());
         }
     }
 
@@ -227,117 +243,21 @@ public class BaseTest {
     }
 
     /**
-     * Helper method to robustly get products from a category with fallback
+     * Helper method to click category by name (streamlined)
      */
-    protected List<String> getProductsWithFallback(String primaryCategory) {
-        List<String> products = new ArrayList<>();
-        
-        // Try primary category first
-        try {
-            logger.info("Attempting to get products from primary category: {}", primaryCategory);
-            
-            // Navigate to home first to ensure clean state
-            navigateToHome();
-            waitForPageLoad();
-            
-            switch (primaryCategory.toLowerCase()) {
-                case "phones":
-                    homeActions.clickPhonesCategory();
-                    break;
-                case "laptops":
-                    homeActions.clickLaptopsCategory();
-                    break;
-                case "monitors":
-                    homeActions.clickMonitorsCategory();
-                    break;
-                default:
-                    homeActions.clickPhonesCategory(); // Default to phones
-            }
-            
-            waitForPageLoad();
-            
-            // Wait with multiple attempts
-            for (int attempt = 1; attempt <= 3; attempt++) {
-                logger.debug("Attempt {} to load products from {}", attempt, primaryCategory);
-                Thread.sleep(2000 * attempt); // Progressive wait: 2s, 4s, 6s
-                
-                products = homeActions.getAllProductTitles();
-                if (!products.isEmpty()) {
-                    logger.info("Successfully loaded {} products from {} category on attempt {}", 
-                            products.size(), primaryCategory, attempt);
-                    return products;
-                }
-                
-                logger.warn("Attempt {} failed - no products found in {} category", attempt, primaryCategory);
-            }
-            
-            // If primary category failed completely, try fallback categories
-            String[] fallbackCategories = {"laptops", "phones", "monitors"};
-            for (String category : fallbackCategories) {
-                if (category.equals(primaryCategory.toLowerCase())) {
-                    continue; // Skip the category we already tried
-                }
-                
-                logger.warn("Primary category '{}' failed, trying fallback category: {}", primaryCategory, category);
-                
-                // Navigate back to home before trying new category
-                navigateToHome();
-                waitForPageLoad();
-                
-                switch (category) {
-                    case "phones":
-                        homeActions.clickPhonesCategory();
-                        break;
-                    case "laptops":
-                        homeActions.clickLaptopsCategory();
-                        break;
-                    case "monitors":
-                        homeActions.clickMonitorsCategory();
-                        break;
-                }
-                
-                waitForPageLoad();
-                
-                // Try multiple times for fallback category too
-                for (int attempt = 1; attempt <= 2; attempt++) {
-                    Thread.sleep(3000); // Wait 3 seconds between attempts
-                    products = homeActions.getAllProductTitles();
-                    
-                    if (!products.isEmpty()) {
-                        logger.info("Successfully loaded {} products from fallback category '{}' on attempt {}", 
-                                products.size(), category, attempt);
-                        return products;
-                    }
-                }
-            }
-            
-            // Final desperate attempt - refresh page and try phones
-            logger.error("All categories failed, making final attempt with page refresh");
-            try {
-                DriverManager.getDriver().navigate().refresh();
-                waitForPageLoad();
-                Thread.sleep(3000);
-                
+    protected void clickCategoryByName(String category) {
+        switch (category.toLowerCase()) {
+            case "phones":
                 homeActions.clickPhonesCategory();
-                waitForPageLoad();
-                Thread.sleep(5000); // Longer wait for final attempt
-                
-                products = homeActions.getAllProductTitles();
-                if (!products.isEmpty()) {
-                    logger.info("Final attempt successful - loaded {} products", products.size());
-                    return products;
-                }
-            } catch (Exception finalEx) {
-                logger.error("Final attempt also failed: {}", finalEx.getMessage());
-            }
-            
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while loading products");
-        } catch (Exception e) {
-            logger.error("Error loading products from category {}: {}", primaryCategory, e.getMessage());
+                break;
+            case "laptops":
+                homeActions.clickLaptopsCategory();
+                break;
+            case "monitors":
+                homeActions.clickMonitorsCategory();
+                break;
+            default:
+                homeActions.clickPhonesCategory(); // Default to phones
         }
-        
-        return products;
     }
 }

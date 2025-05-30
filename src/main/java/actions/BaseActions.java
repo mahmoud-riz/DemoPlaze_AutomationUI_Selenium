@@ -19,23 +19,114 @@ public abstract class BaseActions {
     protected FluentWait<WebDriver> fluentWait;
     protected static final Logger logger = LoggerFactory.getLogger(BaseActions.class);
 
+    // Ultra-fast wait times for maximum performance
+    protected static final int DEFAULT_TIMEOUT = 3; // Reduced from 5
+    protected static final int SHORT_TIMEOUT = 2;   // Reduced from 3
+    protected static final int POLLING_INTERVAL = 100; // Reduced from 250
+
     public BaseActions(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(5)); // Reduced from 10
         this.fluentWait = new FluentWait<>(driver)
-                .withTimeout(Duration.ofSeconds(15))
-                .pollingEvery(Duration.ofMillis(500))
+                .withTimeout(Duration.ofSeconds(8)) // Reduced from 15
+                .pollingEvery(Duration.ofMillis(200)) // Reduced from 500
                 .ignoring(NoSuchElementException.class)
                 .ignoring(StaleElementReferenceException.class);
     }
 
     /**
-     * Wait for page to be fully loaded
+     * Ultra-fast page load wait
      */
     protected void waitForPageLoad() {
-        wait.until(webDriver ->
-                ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
-        logger.debug("Page fully loaded");
+        try {
+            WebDriverWait fastWait = new WebDriverWait(driver, Duration.ofSeconds(2));
+            fastWait.until(webDriver ->
+                    ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+        } catch (TimeoutException e) {
+            // Continue immediately if page doesn't load within 2 seconds
+        }
+    }
+
+    /**
+     * Ultra-fast element visibility wait
+     */
+    protected void waitForElementVisible(String locator) {
+        try {
+            WebDriverWait ultraFastWait = new WebDriverWait(driver, Duration.ofSeconds(1));
+            ultraFastWait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(locator)));
+        } catch (TimeoutException e) {
+            // Continue immediately if element not visible within 1 second
+        }
+    }
+
+    /**
+     * Ultra-fast clickable element wait
+     */
+    protected WebElement waitForElementClickable(String locator) {
+        try {
+            WebDriverWait ultraFastWait = new WebDriverWait(driver, Duration.ofSeconds(1));
+            return ultraFastWait.until(ExpectedConditions.elementToBeClickable(By.xpath(locator)));
+        } catch (TimeoutException e) {
+            // Return element directly if wait fails
+            return driver.findElement(By.xpath(locator));
+        }
+    }
+
+    /**
+     * Ultra-fast alert wait
+     */
+    protected String waitForAlertAndGetText() {
+        try {
+            WebDriverWait alertWait = new WebDriverWait(driver, Duration.ofSeconds(1));
+            Alert alert = alertWait.until(ExpectedConditions.alertIsPresent());
+            return alert.getText();
+        } catch (TimeoutException e) {
+            return "";
+        }
+    }
+
+    /**
+     * Fast click with minimal waits
+     */
+    protected void clickElement(String locator) {
+        try {
+            driver.findElement(By.xpath(locator)).click();
+        } catch (Exception e) {
+            // Fallback with brief wait
+            try {
+                waitForElementClickable(locator).click();
+            } catch (Exception ex) {
+                throw new RuntimeException("Could not click element: " + locator, ex);
+            }
+        }
+    }
+
+    /**
+     * Fast text input
+     */
+    protected void typeText(String locator, String text) {
+        try {
+            WebElement element = driver.findElement(By.xpath(locator));
+            element.clear();
+            element.sendKeys(text);
+        } catch (Exception e) {
+            waitForElementVisible(locator);
+            WebElement element = driver.findElement(By.xpath(locator));
+            element.clear();
+            element.sendKeys(text);
+        }
+    }
+
+    /**
+     * Fast text retrieval
+     */
+    protected String getText(String locator) {
+        try {
+            return driver.findElement(By.xpath(locator)).getText();
+        } catch (Exception e) {
+            waitForElementVisible(locator);
+            return driver.findElement(By.xpath(locator)).getText();
+        }
     }
 
     /**
@@ -65,14 +156,6 @@ public abstract class BaseActions {
     }
 
     /**
-     * Wait for element to be present and visible
-     */
-    protected void waitForElementToBeVisible(String locator) {
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(locator)));
-        logger.debug("Element visible: {}", locator);
-    }
-
-    /**
      * Wait for element to disappear
      */
     protected void waitForElementToDisappear(String locator) {
@@ -94,30 +177,6 @@ public abstract class BaseActions {
             logger.debug("Modal visible but no 'show' class found");
         }
         logger.debug("Modal fully loaded: {}", modalLocator);
-    }
-
-    /**
-     * Wait for alert to be present and return its text
-     */
-    protected String waitForAlertAndGetText() {
-        try {
-            Alert alert = wait.until(ExpectedConditions.alertIsPresent());
-            String alertText = alert.getText();
-            logger.info("Alert present with text: {}", alertText);
-            return alertText;
-        } catch (TimeoutException e) {
-            logger.debug("No alert appeared within timeout");
-            return "";
-        }
-    }
-
-    /**
-     * Wait for element to be clickable and then click
-     */
-    protected void waitAndClick(String locator) {
-        WebElement element = wait.until(ExpectedConditions.elementToBeClickable(By.xpath(locator)));
-        element.click();
-        logger.info("Clicked element: {}", locator);
     }
 
     /**
@@ -160,50 +219,6 @@ public abstract class BaseActions {
     }
 
     /**
-     * Click element with wait
-     */
-    protected void clickElement(String locator) {
-        try {
-            WebElement element = wait.until(ExpectedConditions.elementToBeClickable(By.xpath(locator)));
-            element.click();
-            logger.info("Clicked element: {}", locator);
-        } catch (TimeoutException e) {
-            logger.error("Element not clickable within timeout: {}", locator);
-            throw new RuntimeException("Element not clickable: " + locator, e);
-        }
-    }
-
-    /**
-     * Type text into element
-     */
-    protected void typeText(String locator, String text) {
-        try {
-            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(locator)));
-            element.clear();
-            element.sendKeys(text);
-            logger.info("Typed text '{}' into element: {}", text, locator);
-        } catch (TimeoutException e) {
-            logger.error("Element not visible within timeout: {}", locator);
-            throw new RuntimeException("Element not visible: " + locator, e);
-        }
-    }
-
-    /**
-     * Get text from element
-     */
-    protected String getText(String locator) {
-        try {
-            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(locator)));
-            String text = element.getText();
-            logger.debug("Retrieved text '{}' from element: {}", text, locator);
-            return text;
-        } catch (TimeoutException e) {
-            logger.error("Element not visible within timeout: {}", locator);
-            throw new RuntimeException("Element not visible: " + locator, e);
-        }
-    }
-
-    /**
      * Check if element is present
      */
     protected boolean isElementPresent(String locator) {
@@ -220,25 +235,12 @@ public abstract class BaseActions {
      */
     protected boolean isElementVisible(String locator) {
         try {
-            WebElement element = driver.findElement(By.xpath(locator));
-            return element.isDisplayed();
-        } catch (NoSuchElementException e) {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1)); // Very short wait
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(locator)));
+            return true;
+        } catch (TimeoutException e) {
             return false;
         }
-    }
-
-    /**
-     * Wait for element to be visible
-     */
-    protected WebElement waitForElementVisible(String locator) {
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(locator)));
-    }
-
-    /**
-     * Wait for element to be clickable
-     */
-    protected WebElement waitForElementClickable(String locator) {
-        return wait.until(ExpectedConditions.elementToBeClickable(By.xpath(locator)));
     }
 
     /**
@@ -252,13 +254,8 @@ public abstract class BaseActions {
      * Handle JavaScript alerts
      */
     protected void acceptAlert() {
-        try {
-            Alert alert = wait.until(ExpectedConditions.alertIsPresent());
-            alert.accept();
-            logger.info("Alert accepted");
-        } catch (TimeoutException e) {
-            logger.warn("No alert present to accept");
-        }
+        driver.switchTo().alert().accept();
+        logger.debug("Alert accepted");
     }
 
     /**
@@ -289,8 +286,15 @@ public abstract class BaseActions {
      * Get attribute value
      */
     protected String getAttributeValue(String locator, String attribute) {
-        WebElement element = waitForElementVisible(locator);
-        return element.getAttribute(attribute);
+        try {
+            waitForElementVisible(locator);
+            WebElement element = driver.findElement(By.xpath(locator));
+            return element.getAttribute(attribute);
+        } catch (Exception e) {
+            // Try direct access without wait
+            WebElement element = driver.findElement(By.xpath(locator));
+            return element.getAttribute(attribute);
+        }
     }
 
     /**
@@ -302,6 +306,67 @@ public abstract class BaseActions {
         } catch (Exception e) {
             logger.error("Failed to take screenshot", e);
             return new byte[0];
+        }
+    }
+
+    /**
+     * Wait for dynamic content to load using proper WebDriver waits
+     */
+    protected void waitForDynamicContent() {
+        try {
+            // Wait for document ready state
+            WebDriverWait dynamicWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+            dynamicWait.until(webDriver ->
+                    ((JavascriptExecutor) webDriver).executeScript("return document.readyState").equals("complete"));
+            
+            // Wait for jQuery if available
+            try {
+                dynamicWait.until(webDriver ->
+                        (Boolean) ((JavascriptExecutor) webDriver).executeScript("return typeof jQuery === 'undefined' || jQuery.active === 0"));
+            } catch (Exception e) {
+                // jQuery might not be available, continue
+            }
+            
+        } catch (TimeoutException e) {
+            // Continue if timeout - don't fail the test
+            logger.debug("Dynamic content wait timeout - continuing");
+        }
+    }
+
+    /**
+     * Wait for any condition with custom timeout using proper WebDriver waits
+     */
+    protected boolean waitForConditionWithTimeout(Function<WebDriver, Boolean> condition, int timeoutSeconds) {
+        try {
+            WebDriverWait customWait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+            return customWait.until(condition);
+        } catch (TimeoutException e) {
+            logger.debug("Custom condition wait timeout after {} seconds", timeoutSeconds);
+            return false;
+        }
+    }
+
+    /**
+     * Wait for multiple elements with any one to be visible
+     */
+    protected boolean waitForAnyElementVisible(String[] locators, int timeoutSeconds) {
+        try {
+            WebDriverWait multiWait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+            return multiWait.until(webDriver -> {
+                for (String locator : locators) {
+                    try {
+                        if (isElementVisible(locator)) {
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        // Continue checking other locators
+                    }
+                }
+                return false;
+            });
+        } catch (TimeoutException e) {
+            logger.debug("Multi-element visibility wait timeout after {} seconds", timeoutSeconds);
+            return false;
         }
     }
 }
