@@ -1,47 +1,55 @@
-# 🎯 Project Overview
-Clear description of the DemoBlaze e-commerce testing framework.  
-Highlights enterprise-grade practices and the Page Object Model (POM) design pattern.
+# DemoBlaze E-commerce Testing Framework
+
+---
+
+## 🎯 Project Overview
+This project presents a comprehensive testing framework for the DemoBlaze e-commerce application. It highlights enterprise-grade best practices and implements the Page Object Model (POM) design pattern for maintainability and scalability.
 
 ---
 
 ## ✨ Features
-- Comprehensive framework capabilities including:
-  - Robust retry mechanisms  
-  - Multiple reporting formats  
-  - Smart wait strategies  
+- Robust retry mechanisms for flaky tests  
+- Multiple reporting formats: Allure, TestNG, ExtentReports  
+- Smart wait strategies for stable test execution  
+- Support for custom browser and URL configurations  
+- Modular and extensible test suites  
 
 ---
 
 ## 🛠️ Tech Stack
-| Technology      | Version | Purpose                        |
-|-----------------|---------|-------------------------------|
-| Java            | 11      | Core programming language      |
-| Selenium        | 4.15.0  | Web UI automation              |
-| TestNG          | Latest  | Test execution framework       |
-| Maven           | Latest  | Build and dependency management|
-| Allure          | Latest  | Test reporting                 |
-| ...             | ...     | ...                           |
+
+| Technology       | Version  | Purpose                                  |
+|------------------|----------|------------------------------------------|
+| Java             | 11       | Programming language                      |
+| Selenium         | 4.15.0   | Browser automation framework              |
+| TestNG           | Latest   | Test orchestration and assertions         |
+| Maven            | Latest   | Build and dependency management           |
+| Allure           | Latest   | Advanced test reporting                    |
+| WebDriverManager | Latest   | Automatic driver management                |
 
 ---
 
 ## 🏛️ Project Architecture
-Visual representation of the layered architecture:  
-**Test Layer → Actions Layer → Locators Layer → Utils Layer**
 
----
+The framework is structured into layered modules:
 
-## 🚀 Installation & Setup
-Step-by-step setup instructions:
 
-```bash
-# Clone the repo
-git clone <repo-url>
+- **Test Layer:** Contains test scripts and suites  
+- **Actions Layer:** Business logic and reusable actions  
+- **Locators Layer:** UI element locators  
+- **Utils Layer:** Utility helpers like wait strategies, retries, logging
 
-# Navigate to project directory
-cd DemoBlaze
+## 🎮 Test Scenarios
 
-# Install dependencies and build
-mvn clean install
+### 🔐 Login Tests
+- Registration, validation, login, logout flows
 
-# Verify installation
-mvn test
+### 🛒 Cart Tests
+- Adding/removing products, price calculations, cart persistence
+
+### 📦 Product Tests
+- Product search, filtering, navigation
+
+### 💳 Checkout Tests
+- End-to-end checkout process, validations, order confirmation
+
