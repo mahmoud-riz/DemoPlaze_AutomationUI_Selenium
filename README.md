@@ -4,30 +4,8 @@
 
 ## 🎯 Project Overview
 This project presents a comprehensive testing framework for the DemoBlaze e-commerce application. It highlights enterprise-grade best practices and implements the Page Object Model (POM) design pattern for maintainability and scalability.
-A comprehensive Selenium WebDriver automation framework for testing the Demoblaze e-commerce application using TestNG, ExtentReports, and Maven.
----
 
-## 📁 Project Structure
-selenium-automation/
-├── src/
-│   ├── main/
-│   │   └── java/
-│   │       └──
-│   │           ├── pages/          # Page Object Model classes
-│   │           ├── utils/          # Utility classes
-│   │           └── config/         # Configuration classes
-│   └── test/
-│       ├── java/
-│       │   └──
-│       │       └── tests/          # Test classes
-│       └── resources/
-│           ├── testng.xml          # TestNG suite configuration
-│           ├── log4j2.xml          # Logging configuration
-│           └── test-data/          # Test data files
-├── test-output/                    # Generated reports
-├── logs/                          # Application logs
-├── pom.xml                        # Maven configuration
-└── README.md                      # Project documentation
+---
 
 ## ✨ Features
 - Robust retry mechanisms for flaky tests  
@@ -54,8 +32,6 @@ selenium-automation/
 ## 🏛️ Project Architecture
 
 The framework is structured into layered modules:
-
-
 - **Test Layer:** Contains test scripts and suites  
 - **Actions Layer:** Business logic and reusable actions  
 - **Locators Layer:** UI element locators  
